@@ -1,18 +1,21 @@
+import imp
+from wsgiref import headers
 from requests import session, request
-from time import sleep, time
+from time import sleep
 import json
 import random
-import re
 
-class Weike():
-    def __init__(self, uid, token, school):
-        self.school = school
+class weike():
+    def __init__(self, sid):
+        self.sid = sid
         self.header = {
             "userAgent" : "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/93.0.4577.63 Safari/537.36 Edg/93.0.961.47",
-            "x-token" : token
+            "x-token" : "8cb707e9-fe17-414c-b9c0-5468a88bc268"
         }
-        self.uid = uid
+        self.uid = "fe9507a5-b526-4b57-97a4-df2ed1298a83"
+        self.school = "73000001"
         self.ssion = session()
+        # ssion.get("http://weiban.mycourse.cn/#/login",headers=self.header)
 
     def get_tasks(self):
         data = {
@@ -20,26 +23,26 @@ class Weike():
             "tenantCode": self.school,
             "limit" : 2
         }
-        url = "https://weiban.mycourse.cn/pharos/index/listStudyTask.do?timestamp=" + str(int(time()))
+        url = "https://weiban.mycourse.cn/pharos/index/listStudyTask.do?timestamp=1665650789"
         info = self.ssion.post(url, data=data,headers=self.header,verify = False)
         res = json.loads(info.text)['data']
         return res
 
 
     def get_category(self, userprojectid):
-        url = "https://weiban.mycourse.cn/pharos/usercourse/listCategory.do?timestamp=" + str(int(time()))
+        url = "https://weiban.mycourse.cn/pharos/usercourse/listCategory.do?timestamp=1665652059"
         data = {
             "userProjectId": userprojectid,
             "chooseType":    "3",
             "userId":        self.uid,
             "tenantCode":    self.school
         }
-        info = self.ssion.post(url, data=data,headers=self.header,verify = False)
+        info = info = self.ssion.post(url, data=data,headers=self.header,verify = False)
         res = json.loads(info.text)['data']
         return res
         
     def get_courses(self, userprojectid, categorycode):
-        url = "https://weiban.mycourse.cn/pharos/usercourse/listCourse.do?timestamp=" + str(int(time()))
+        url = "https://weiban.mycourse.cn/pharos/usercourse/listCourse.do?timestamp=1665652280"
         data = {
             "userProjectId": userprojectid,
             "chooseType":    "3",
@@ -53,7 +56,7 @@ class Weike():
         return res
 
     def do_course(self, userprojectid, courseid, userCourseId):
-        url1 = "https://weiban.mycourse.cn/pharos/usercourse/study.do?timestamp=" + str(int(time()))
+        url1 = "https://weiban.mycourse.cn/pharos/usercourse/study.do"
         data = {
             "courseId":  courseid,
             "userProjectId": userprojectid,
@@ -61,40 +64,35 @@ class Weike():
             "userId":   self.uid
         }
         ans1 = self.ssion.post(url1, data=data,headers=self.header, verify = False)
-        print(ans1.text)
+        # print(ans1.text)
         
-        url2 = "https://weiban.mycourse.cn/pharos/usercourse/getCourseUrl.do?timestamp=" + str(int(time()))
+        url2 = "https://weiban.mycourse.cn/pharos/usercourse/getCourseUrl.do"
         ans2 = self.ssion.post(url2, data=data,headers=self.header, verify=False)
-        methodToken = re.findall(r"methodToken=(.*?)&", ans2.json()['data'])[0]
+        # print(ans2.text)
 
-        ans2_1 = self.ssion.get(ans2.json()['data'], headers=self.header, verify=False)
-        # print(ans2_1.text)
-        sleep(5)
+        sleep(17)
 
         url3 = "https://weiban.mycourse.cn/pharos/usercourse/finish.do?userCourseId=" +  userCourseId + "&tenantCode="+ self.school
         ans3 = self.ssion.get(url3, headers=self.header, verify=False)
-        # print(ans3.text)
-        
-        url4 = f"https://weiban.mycourse.cn/pharos/usercourse/v1/{methodToken}.do?userCourseId={userCourseId}&tenantCode={self.school}"
-        ans4 = self.ssion.get(url4, headers=self.header, verify=False)
-        # print(ans4.text)
-        
-        
+        print(ans3.text)
+
     def do_all(self):
-        cnt = 0
         tasks = self.get_tasks()
-        print(tasks)
         for task in tasks:
             userProjectId = task['userProjectId']
             categories = self.get_category(userProjectId)
-            print(categories)
             for category in categories:
                 categoryCode = category['categoryCode']
                 courses = self.get_courses(userProjectId, categoryCode)
                 for course in courses:
-                    print(course)
                     if course['finished'] == 1:
                         continue
                     courseId = course['resourceId']
                     userCourseId = course['userCourseId']
+                    print(course['resourceName'])
                     self.do_course(userProjectId, courseId, userCourseId)
+                
+
+
+if __name__ == '__main__':
+    weike("320220927571").do_all()
